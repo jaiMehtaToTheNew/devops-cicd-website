@@ -1,0 +1,53 @@
+name: Deploy Website to AWS
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: ap-south-1
+  S3_BUCKET: devops-cicd-website-jai
+
+jobs:
+  test-build-deploy:
+
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Test HTML file
+        run: |
+          test -f index.html
+          test -f style.css
+          test -f script.js
+          echo "All website files are present."
+
+      - name: Build / Package
+        run: |
+          mkdir -p build
+          cp index.html build/
+          cp style.css build/
+          cp script.js build/
+          echo "Build completed successfully."
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: arn:aws:iam::192372308638:role/GitHubActionS3Deployment
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Deploy to S3
+        run: |
+          aws s3 sync build/ s3://${{ env.S3_BUCKET }} --delete
+
+      - name: Deployment complete
+        run: |
+          echo "Website deployed successfully."
